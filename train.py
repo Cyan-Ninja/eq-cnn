@@ -49,11 +49,12 @@ import operator
 import scipy.io as sio
 np.random.seed(7)
 import os
-#os.environ['CUDA_VISIBLE_DEVICES']='0'
 import time
+
 time_start = time.time()
 
-tf.executing_eagerly() # eager execution (dev-only)
+#os.environ['CUDA_VISIBLE_DEVICES']='2' # CUDA GPUs
+#tf.executing_eagerly() # eager execution (dev-only)
 
 def read_data(path, name) -> np.array:
 	with tables.open_file(dataset_path) as store:
@@ -190,34 +191,34 @@ if __name__ == "__main__":
 	model = Sequential()
 	model.add(Conv1D(32, kernel_size=21,
 		activation='relu',
-		input_shape=[None, input_shape,]))
+		input_shape=(None, input_shape,)))
 	model.add(BatchNormalization(axis=-1, momentum=0.99, epsilon=0.001))
 	model.add(MaxPooling1D(pool_size=2))
 	model.add(Dropout(0.25))
 
 	model.add(Conv1D(64, kernel_size=15,
 		activation='relu',
-		input_shape=[None, input_shape,]))
+		input_shape=(None, input_shape,)))
 	model.add(BatchNormalization(axis=-1, momentum=0.99, epsilon=0.001))
 	model.add(MaxPooling1D(pool_size=2))
 	model.add(Dropout(0.25))
 
 	model.add(Conv1D(128, kernel_size=11,
 		activation='relu',
-		input_shape=[None, input_shape,]))
+		input_shape=(None, input_shape,)))
 	model.add(BatchNormalization(axis=-1, momentum=0.99, epsilon=0.001))
 	model.add(MaxPooling1D(pool_size=2))
 	model.add(Dropout(0.25))
 
 	model.add(Conv1D(256, kernel_size=3,
 		activation='relu',
-		input_shape=[None, input_shape,]))
+		input_shape=(None, input_shape,)))
 	model.add(BatchNormalization(axis=-1, momentum=0.99, epsilon=0.001))
 	model.add(MaxPooling1D(pool_size=2))
 	model.add(Dropout(0.25))
 	model.add(Flatten())
 	#model.add(Dense(256, activation='relu', kernel_regularizer=regularizers.l2(0.01)))
-	model.add(Dense(256, activation='relu', input_shape=[input_shape,]))
+	model.add(Dense(256, activation='relu'))
 	model.add(Dropout(0.5))
 	model.add(Dense(num_classes, activation='softmax'))
 	'''
