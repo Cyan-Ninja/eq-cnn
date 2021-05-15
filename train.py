@@ -49,9 +49,11 @@ import operator
 import scipy.io as sio
 np.random.seed(7)
 import os
-os.environ['CUDA_VISIBLE_DEVICES']='0'
+#os.environ['CUDA_VISIBLE_DEVICES']='0'
 import time
 time_start = time.time()
+
+tf.executing_eagerly() # eager execution (dev-only)
 
 def read_data(path, name) -> np.array:
 	with tables.open_file(dataset_path) as store:
@@ -103,11 +105,11 @@ if __name__ == "__main__":
 	# batch variables
 	train_test_ratio = 0.75
 	batch_size = 8
-	num_classes = 1
+	num_classes = 3 # [neg, amb, pos]
 	epochs = 200
 	# image dimensions
 	img_rows, img_cols = 1, 6501
-	input_shape = (img_cols, img_rows)
+	input_shape = img_cols
 
 	# initial data
 	x_data = data[:, :, 0] # data (z channel only)
@@ -117,12 +119,15 @@ if __name__ == "__main__":
 	for i in range(len(y_data)):
 		if y_data[i] == 'positive':
 			y_data[i] = 1
+			#y_data[i] = 2
 		elif y_data[i] == 'negative':
 			y_data[i] = 0
-		else:
+			#y_data[i] = 0
+		else: # '' is ambiguous
 			y_data[i] = 0.5
+			#y_data[i] = 1
 
-	# convert numpy arrays to tensors
+	# convert numpy arrays to tensor
 	x_data = tf.convert_to_tensor(x_data.astype('float32'))
 	y_data = tf.convert_to_tensor(y_data.astype('float32'))
 	# shuffle
@@ -131,28 +136,17 @@ if __name__ == "__main__":
 	x_data = tf.gather(x_data, idx)
 	y_data = tf.gather(y_data, idx)
 	# split
-	even_len = np.floor(len(x_data) / 2) * 2
-	x_train, x_test = tf.split(int(x_data[1:even_len]), num_or_size_splits=2, axis=1)
-	y_train, y_test = tf.split(int(y_data[1:even_len]), num_or_size_splits=2, axis=1)
+	even_split = int(np.floor(len(x_data) / 2) * 2)
+	x_train, x_test = tf.split(x_data[:even_split], num_or_size_splits=2, axis=0)
+	y_train, y_test = tf.split(y_data[:even_split], num_or_size_splits=2, axis=0)
 
 	# the data, shuffled and split between train and test sets
-	x_train = x_train.reshape(x_train.shape[0], img_cols, img_rows)
-	x_test = x_test.reshape(x_test.shape[0], img_cols, img_rows)
+	print('x_train- Shape:', x_train.shape, 'Sample:', x_train[0])
+	print('y_train- Shape:', y_train.shape, 'Sample:', y_train[0])
 
-	x_train = x_train.astype('float32')
-	x_test = x_test.astype('float32')
-	print('x_train Shape:', x_train.shape)
-	print('x_test Shape:', x_test.shape)
-	print('y_train Shape:', y_train.shape)
-	print('y_test Shape:', y_test.shape)
-
-	exit()
-
-	# convert class vectors to binary class matrices
-	y_train = keras.utils.to_categorical(y_train, num_classes)
-	y_test = keras.utils.to_categorical(y_test, num_classes)
-
-	exit()
+	# convert class vectors to binary class matrices as [[b, b, b], ... [b, b, b]] - kept instead as 0/0.5/1 for neg/amb/pos as [f, ... f]
+	#y_train = keras.utils.to_categorical(y_train, num_classes)
+	#y_test = keras.utils.to_categorical(y_test, num_classes)
 
 	# loss history class
 	class LossHistory(keras.callbacks.Callback):
@@ -237,6 +231,8 @@ if __name__ == "__main__":
 
 	# history
 	history = LossHistory()
+
+	# DEBUG: 100% working until fitting
 
 	model.fit(x_train, y_train,
 		batch_size=batch_size,
