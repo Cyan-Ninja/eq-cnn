@@ -49,7 +49,7 @@ import operator
 import scipy.io as sio
 np.random.seed(7)
 import os
-#os.environ["CUDA_VISIBLE_DEVICES"]="2"
+os.environ['CUDA_VISIBLE_DEVICES']='0'
 import time
 time_start = time.time()
 
@@ -98,7 +98,63 @@ if __name__ == "__main__":
 
 	# get result from model
 
-	# loss history
+	# organise data for model
+
+	# batch variables
+	train_test_ratio = 0.75
+	batch_size = 8
+	num_classes = 1
+	epochs = 200
+	# image dimensions
+	img_rows, img_cols = 1, 6501
+	input_shape = (img_cols, img_rows)
+
+	# initial data
+	x_data = data[:, :, 0] # data (z channel only)
+	y_data = np.copy(df['polarity']) # labels (unlinked array)
+
+	# convert polarity data to an 1/0 integer instead of string
+	for i in range(len(y_data)):
+		if y_data[i] == 'positive':
+			y_data[i] = 1
+		elif y_data[i] == 'negative':
+			y_data[i] = 0
+		else:
+			y_data[i] = 0.5
+
+	# convert numpy arrays to tensors
+	x_data = tf.convert_to_tensor(x_data.astype('float32'))
+	y_data = tf.convert_to_tensor(y_data.astype('float32'))
+	# shuffle
+	indices = tf.range(start=0, limit=tf.shape(x_data)[0], dtype=tf.int32)
+	idx = tf.random.shuffle(indices)
+	x_data = tf.gather(x_data, idx)
+	y_data = tf.gather(y_data, idx)
+	# split
+	even_len = np.floor(len(x_data) / 2) * 2
+	x_train, x_test = tf.split(int(x_data[1:even_len]), num_or_size_splits=2, axis=1)
+	y_train, y_test = tf.split(int(y_data[1:even_len]), num_or_size_splits=2, axis=1)
+
+	# the data, shuffled and split between train and test sets
+	x_train = x_train.reshape(x_train.shape[0], img_cols, img_rows)
+	x_test = x_test.reshape(x_test.shape[0], img_cols, img_rows)
+
+	x_train = x_train.astype('float32')
+	x_test = x_test.astype('float32')
+	print('x_train Shape:', x_train.shape)
+	print('x_test Shape:', x_test.shape)
+	print('y_train Shape:', y_train.shape)
+	print('y_test Shape:', y_test.shape)
+
+	exit()
+
+	# convert class vectors to binary class matrices
+	y_train = keras.utils.to_categorical(y_train, num_classes)
+	y_test = keras.utils.to_categorical(y_test, num_classes)
+
+	exit()
+
+	# loss history class
 	class LossHistory(keras.callbacks.Callback):
 		def on_train_begin(self, logs={}):
 			self.losses = {'batch':[], 'epoch':[]}
@@ -136,51 +192,7 @@ if __name__ == "__main__":
 							plt.legend(loc="upper right")
 							plt.show()
 
-	# organise data for model
-
-	train_test_ratio = 0.75
-	img_rows, img_cols = 1, 6501
-	input_shape = (img_cols, img_rows)
-
-	# initial data
-	x_train = data[:, :, 0] # data (z channel only)
-	y_train = np.copy(df['polarity']) # labels (unlinked array)
-	# convert polarity data to an integer instead of string
-	for i in y_train:
-		if i == 'positive':
-			i == 1
-		elif i == 'negative':
-			i == -1
-
-	print(y_train[58])
-	# shuffle
-
-	# split into train and test
-	x_train, x_test = np.split(x_train, [int(train_test_ratio * len(x_train))])
-	y_train, y_test = np.split(y_train, [int(train_test_ratio * len(y_train))])
-
-	# batch variables
-	batch_size = 8
-	num_classes = 1
-	epochs = 200
-
-	# the data, shuffled and split between train and test sets
-	x_train = x_train.reshape(x_train.shape[0], img_cols, 1)
-	x_test = x_test.reshape(x_test.shape[0], img_cols, 1)
-
-	x_train = x_train.astype('float32')
-	x_test = x_test.astype('float32')
-	print('x_train Shape:', x_train.shape)
-	print('x_test Shape:', x_test.shape)
-	print('y_train Shape:', y_train.shape)
-	print('y_test Shape:', y_test.shape)
-
-	exit()
-
-	# convert class vectors to binary class matrices
-	y_train = keras.utils.to_categorical(y_train, num_classes)
-	y_test = keras.utils.to_categorical(y_test, num_classes)
-
+	# model
 	model = Sequential()
 	model.add(Conv1D(32, kernel_size=21,
 		activation='relu',
@@ -223,7 +235,7 @@ if __name__ == "__main__":
 		optimizer=optimizers.SGD(lr=0.01),
 		metrics=['accuracy'])
 
-	#history
+	# history
 	history = LossHistory()
 
 	model.fit(x_train, y_train,
@@ -239,8 +251,9 @@ if __name__ == "__main__":
 	print('Test loss:', score[0])
 	print('Test accuracy:', score[1])
 
-
 	history.loss_plot('epoch')
+
+	# stats
 
 	loss1=history.losses['epoch']+history.val_loss['epoch']+history.accuracy['epoch']+history.val_acc['epoch']
 	np.savetxt("loss_single.txt",loss1)
