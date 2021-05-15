@@ -105,7 +105,7 @@ if __name__ == "__main__":
 	# batch variables
 	train_test_ratio = 0.75
 	batch_size = 8
-	num_classes = 3 # [neg, amb, pos]
+	num_classes = 1 # [neg, amb, pos]
 	epochs = 200
 	# image dimensions
 	img_rows, img_cols = 1, 6501
@@ -190,34 +190,34 @@ if __name__ == "__main__":
 	model = Sequential()
 	model.add(Conv1D(32, kernel_size=21,
 		activation='relu',
-		input_shape=input_shape))
+		input_shape=[None, input_shape,]))
 	model.add(BatchNormalization(axis=-1, momentum=0.99, epsilon=0.001))
 	model.add(MaxPooling1D(pool_size=2))
 	model.add(Dropout(0.25))
 
 	model.add(Conv1D(64, kernel_size=15,
 		activation='relu',
-		input_shape=input_shape))
+		input_shape=[None, input_shape,]))
 	model.add(BatchNormalization(axis=-1, momentum=0.99, epsilon=0.001))
 	model.add(MaxPooling1D(pool_size=2))
 	model.add(Dropout(0.25))
 
 	model.add(Conv1D(128, kernel_size=11,
 		activation='relu',
-		input_shape=input_shape))
+		input_shape=[None, input_shape,]))
 	model.add(BatchNormalization(axis=-1, momentum=0.99, epsilon=0.001))
 	model.add(MaxPooling1D(pool_size=2))
 	model.add(Dropout(0.25))
 
 	model.add(Conv1D(256, kernel_size=3,
 		activation='relu',
-		input_shape=input_shape))
+		input_shape=[None, input_shape,]))
 	model.add(BatchNormalization(axis=-1, momentum=0.99, epsilon=0.001))
 	model.add(MaxPooling1D(pool_size=2))
 	model.add(Dropout(0.25))
 	model.add(Flatten())
 	#model.add(Dense(256, activation='relu', kernel_regularizer=regularizers.l2(0.01)))
-	model.add(Dense(256, activation='relu'))
+	model.add(Dense(256, activation='relu', input_shape=[input_shape,]))
 	model.add(Dropout(0.5))
 	model.add(Dense(num_classes, activation='softmax'))
 	'''
@@ -243,7 +243,7 @@ if __name__ == "__main__":
 	score = model.evaluate(x_test, y_test, verbose=0)
 	model.save('single_polarity.cnn')
 	weights=model.layers[0].get_weights()
-	#plot_model(model,to_file='test.png')
+	plot_model(model, to_file='model_plot.png')
 	print('Test loss:', score[0])
 	print('Test accuracy:', score[1])
 
