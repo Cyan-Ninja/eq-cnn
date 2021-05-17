@@ -38,8 +38,7 @@ from keras.datasets import mnist
 from keras.models import Sequential
 from keras.models import model_from_json
 from keras.models import load_model
-from keras.layers import Dense, Dropout, Flatten
-from keras.layers import Conv1D, MaxPooling1D
+from keras.layers import Conv1D, MaxPooling1D, Dropout, Dense, GlobalMaxPooling1D, Flatten
 from keras import backend as K
 from keras.layers.normalization import BatchNormalization
 from keras.utils import plot_model
@@ -187,33 +186,47 @@ if __name__ == "__main__":
 							plt.legend(loc="upper right")
 							plt.show()
 
+	# class Split(keras.layers.Layer):
+	# 	def __init__(self, input_dim=3):
+	# 		super(Split, self).__init__()
+	#
+	# 	def call(self, inputs):
+	# 		result = inputs[0,:,:]
+	# 		result = tf.expand_dims(result, axis=0, name=None)
+	# 		#result = tf.squeeze(result, axis=None, name=None)
+	# 		return result
+
 	# model
 	model = Sequential()
-	model.add(Conv1D(32, kernel_size=21,
+	model.add(Conv1D(32, kernel_size=11,
 		activation='relu',
-		input_shape=(None, input_shape,)))
+		input_shape=(1, input_shape, 1)))
 	model.add(BatchNormalization(axis=-1, momentum=0.99, epsilon=0.001))
+	# model.add(Split())
 	model.add(MaxPooling1D(pool_size=2))
 	model.add(Dropout(0.25))
 
-	model.add(Conv1D(64, kernel_size=15,
+	model.add(Conv1D(64, kernel_size=9,
 		activation='relu',
-		input_shape=(None, input_shape,)))
+		input_shape=(1, input_shape, 1)))
 	model.add(BatchNormalization(axis=-1, momentum=0.99, epsilon=0.001))
+	# model.add(Split())
 	model.add(MaxPooling1D(pool_size=2))
 	model.add(Dropout(0.25))
 
-	model.add(Conv1D(128, kernel_size=11,
+	model.add(Conv1D(128, kernel_size=5,
 		activation='relu',
-		input_shape=(None, input_shape,)))
+		input_shape=(1, input_shape, 1)))
 	model.add(BatchNormalization(axis=-1, momentum=0.99, epsilon=0.001))
+	# model.add(Split())
 	model.add(MaxPooling1D(pool_size=2))
 	model.add(Dropout(0.25))
 
 	model.add(Conv1D(256, kernel_size=3,
 		activation='relu',
-		input_shape=(None, input_shape,)))
+		input_shape=(1, input_shape, 1)))
 	model.add(BatchNormalization(axis=-1, momentum=0.99, epsilon=0.001))
+	# model.add(Split())
 	model.add(MaxPooling1D(pool_size=2))
 	model.add(Dropout(0.25))
 	model.add(Flatten())
@@ -233,17 +246,15 @@ if __name__ == "__main__":
 	# history
 	history = LossHistory()
 
-	# DEBUG: 100% working until fitting
-
 	model.fit(x_train, y_train,
 		batch_size=batch_size,
 		epochs=epochs,
 		verbose=1,
 		validation_data=(x_test, y_test),
 		callbacks=[history])
-	score = model.evaluate(x_test, y_test, verbose=0)
+	score = model.evaluate(x_test, y_test, verbose=1)
 	model.save('single_polarity.cnn')
-	weights=model.layers[0].get_weights()
+	weights = model.layers[0].get_weights()
 	plot_model(model, to_file='model_plot.png')
 	print('Test loss:', score[0])
 	print('Test accuracy:', score[1])
