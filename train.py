@@ -105,8 +105,8 @@ if __name__ == "__main__":
 	# batch variables
 	train_test_ratio = 0.75
 	batch_size = 8
-	num_classes = 1 # [neg, amb, pos]
-	epochs = 200
+	num_classes = 1 # [pol] or [neg, amb, pos]
+	epochs = 2 # make something like 200 for actual training
 	# image dimensions
 	img_rows, img_cols = 1, 6501
 	input_shape = img_cols
@@ -114,6 +114,13 @@ if __name__ == "__main__":
 	# initial data
 	x_data = data[:, :, 0] # data (z channel only)
 	y_data = np.copy(df['polarity']) # labels (unlinked array)
+
+	print("DATA ORGANISATION:")
+
+	# add z channel data into a single array
+	# for i in range(len(x_data)):
+	# 	for j in range(len(x_data[i])):
+	# 		x_data[i][j] = [x_data[i][j]]
 
 	# convert polarity data to an 1/0 integer instead of string
 	for i in range(len(y_data)):
@@ -130,6 +137,10 @@ if __name__ == "__main__":
 	# convert numpy arrays to tensor
 	x_data = tf.convert_to_tensor(x_data.astype('float32'))
 	y_data = tf.convert_to_tensor(y_data.astype('float32'))
+	# reshape from [[pol, ...,], [...],] to [[[pol], [...],], [...],]
+	print("Before:", x_data.shape)
+	x_data = tf.reshape(x_data, [len(x_data), img_cols, 1])
+	print("After:", x_data.shape)
 	# shuffle
 	indices = tf.range(start=0, limit=tf.shape(x_data)[0], dtype=tf.int32)
 	idx = tf.random.shuffle(indices)
@@ -141,12 +152,14 @@ if __name__ == "__main__":
 	y_train, y_test = tf.split(y_data[:even_split], num_or_size_splits=2, axis=0)
 
 	# the data, shuffled and split between train and test sets
-	print('x_train- Shape:', x_train.shape, 'Sample:', x_train[0])
-	print('y_train- Shape:', y_train.shape, 'Sample:', y_train[0])
+	print('x_train- Shape:', x_train.shape, '\nx_train- Sample:', x_train[0])
+	print('y_train- Shape:', y_train.shape, '\ny_train- Sample:', y_train[0])
 
 	# convert class vectors to binary class matrices as [[b, b, b], ... [b, b, b]] - kept instead as 0/0.5/1 for neg/amb/pos as [f, ... f]
 	#y_train = keras.utils.to_categorical(y_train, num_classes)
 	#y_test = keras.utils.to_categorical(y_test, num_classes)
+
+	print("HISTORY AND MODEL CREATION:")
 
 	# loss history class
 	class LossHistory(keras.callbacks.Callback):
@@ -200,7 +213,7 @@ if __name__ == "__main__":
 	model = Sequential()
 	model.add(Conv1D(32, kernel_size=11,
 		activation='relu',
-		input_shape=(1, input_shape, 1)))
+		input_shape=(input_shape, 1)))
 	model.add(BatchNormalization(axis=-1, momentum=0.99, epsilon=0.001))
 	# model.add(Split())
 	model.add(MaxPooling1D(pool_size=2))
@@ -208,7 +221,7 @@ if __name__ == "__main__":
 
 	model.add(Conv1D(64, kernel_size=9,
 		activation='relu',
-		input_shape=(1, input_shape, 1)))
+		input_shape=(input_shape, 1)))
 	model.add(BatchNormalization(axis=-1, momentum=0.99, epsilon=0.001))
 	# model.add(Split())
 	model.add(MaxPooling1D(pool_size=2))
@@ -216,7 +229,7 @@ if __name__ == "__main__":
 
 	model.add(Conv1D(128, kernel_size=5,
 		activation='relu',
-		input_shape=(1, input_shape, 1)))
+		input_shape=(input_shape, 1)))
 	model.add(BatchNormalization(axis=-1, momentum=0.99, epsilon=0.001))
 	# model.add(Split())
 	model.add(MaxPooling1D(pool_size=2))
@@ -224,7 +237,7 @@ if __name__ == "__main__":
 
 	model.add(Conv1D(256, kernel_size=3,
 		activation='relu',
-		input_shape=(1, input_shape, 1)))
+		input_shape=(input_shape, 1)))
 	model.add(BatchNormalization(axis=-1, momentum=0.99, epsilon=0.001))
 	# model.add(Split())
 	model.add(MaxPooling1D(pool_size=2))
@@ -246,12 +259,16 @@ if __name__ == "__main__":
 	# history
 	history = LossHistory()
 
+	print("FITTING:")
+
 	model.fit(x_train, y_train,
 		batch_size=batch_size,
 		epochs=epochs,
 		verbose=1,
 		validation_data=(x_test, y_test),
 		callbacks=[history])
+
+	print("SCORING AND HISTORY:")
 	score = model.evaluate(x_test, y_test, verbose=1)
 	model.save('single_polarity.cnn')
 	weights = model.layers[0].get_weights()
