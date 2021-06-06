@@ -50,6 +50,7 @@ np.random.seed(7)
 import os
 import time
 
+print("TensorFlow: v.", tf.__version__)
 time_start = time.time()
 
 #os.environ['CUDA_VISIBLE_DEVICES']='2' # CUDA GPUs
@@ -138,9 +139,7 @@ if __name__ == "__main__":
 	x_data = tf.convert_to_tensor(x_data.astype('float32'))
 	y_data = tf.convert_to_tensor(y_data.astype('float32'))
 	# reshape from [[pol, ...,], [...],] to [[[pol], [...],], [...],]
-	print("Before:", x_data.shape)
 	x_data = tf.reshape(x_data, [len(x_data), img_cols, 1])
-	print("After:", x_data.shape)
 	# shuffle
 	indices = tf.range(start=0, limit=tf.shape(x_data)[0], dtype=tf.int32)
 	idx = tf.random.shuffle(indices)
@@ -272,7 +271,7 @@ if __name__ == "__main__":
 	score = model.evaluate(x_test, y_test, verbose=1)
 	model.save('single_polarity.cnn')
 	weights = model.layers[0].get_weights()
-	plot_model(model, to_file='model_plot.png')
+	#plot_model(model, to_file='model_plot.png')
 	print('Test loss:', score[0])
 	print('Test accuracy:', score[1])
 
